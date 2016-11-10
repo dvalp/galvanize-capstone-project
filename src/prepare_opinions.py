@@ -14,3 +14,4 @@ for name in opinion_names:
     opinion = tf_opinions.extractfile(name)
     opinions_list.append(json.loads(opinion.read().decode().replace('\n', '')))
 
+df = pd.DataFrame(opinions_list)
