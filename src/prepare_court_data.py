@@ -1,7 +1,6 @@
 import pandas as pd
 import tarfile
 import json
-from bs4 import BeautifulSoup
 
 # Import the CiteGeist file into a dataframe
 # CiteGeist uses tfidf as part of its ranking and isn't currently helpful to my project
