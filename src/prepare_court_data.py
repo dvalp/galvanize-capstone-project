@@ -1,6 +1,7 @@
 import pandas as pd
 import tarfile
 import json
+from bs4 import BeautifulSoup
 
 # Import the CiteGeist file into a dataframe
 # CiteGeist uses tfidf as part of its ranking and isn't currently helpful to my project
@@ -15,4 +16,4 @@ def create_df_from_tar(files_tar):
             json_itm = tf_files.extractfile(f_name)
             json_list.append(json.loads(json_itm.read().decode()))
 
-    return pd.DataFrame(json_list)
+    return json_list
