@@ -8,5 +8,4 @@ opinion_lst = prepare_court_data.create_df_from_tar('data/opinions_wash.tar.gz')
 opinion_rdd = sc.parallelize(opinion_lst, 15)
 
 test_parse = sc.parallelize(opinion_rdd.take(10), 15)
-rdd = test_parse.map(lambda row: BeautifulSoup(row.get('html_columbia',""), 'lxml').get_text())
 
