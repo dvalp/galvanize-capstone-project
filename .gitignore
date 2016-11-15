@@ -12,3 +12,7 @@ __pycache__/
 # Flask stuff:
 instance/
 .webassets-cache
+
+# Derby DB
+derby.log
+metastore_db/
