@@ -20,11 +20,16 @@ def create_df_from_tar(files_tar):
 
             # parse the html out of each record as it is imported
             if json_itm.get('html_columbia'):
-                json_itm['html_columbia'].replace('<blockquote>', '"').replace('</blockquote>', '"')
-                json_itm['parsed_columbia'] = BeautifulSoup(json_itm['html_columbia'], 'lxml').text
-            if json_itm.get('html_lawbox'):
-                json_itm['html_lawbox'].replace('<blockquote>', '"').replace('</blockquote>', '"')
-                json_itm['parsed_lawbox'] = BeautifulSoup(json_itm.get('html_lawbox'), 'lxml').text
+                json_itm['html_columbia'] = json_itm['html_columbia'].replace('<blockquote>', '"').replace('</blockquote>', '"')
+                json_itm['parsed_text'] = BeautifulSoup(json_itm['html_columbia'], 'lxml').text
+            elif json_itm.get('html_lawbox'):
+                json_itm['html_lawbox'] = json_itm['html_lawbox'].replace('<blockquote>', '"').replace('</blockquote>', '"')
+                json_itm['parsed_text'] = BeautifulSoup(json_itm.get('html_lawbox'), 'lxml').text
+            elif json_itm.get('plain_text'):
+                json_itm['parsed_text'] = json_itm.get('plain_text')
+
+            json_itm['cluster_id'] = json_itm['cluster'].split('/')[-2]
+            json_itm['resource_id'] = json_itm['resource_uri'].split('/')[-2]
 
             json_list.append(json_itm)
 

@@ -1,9 +1,9 @@
 #!/bin/bash
-export PYSPARK_PYTHON=/usr/bin/python3 
+export PYSPARK_PYTHON=/home/ratboy/.virtualenvs/capstone/bin/python3
 export PYSPARK_DRIVER_PYTHON=ipython 
 
 /usr/local/spark/bin/pyspark \
-	--master local[5] \
+	--master local[6] \
 	--executor-memory 12G \
 	--driver-memory 12G \
 	--packages com.databricks:spark-csv_2.11:1.5.0 \
