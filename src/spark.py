@@ -49,3 +49,4 @@ op_tokens_df = opinion_cv_model.transform(op_tokens_df)
 # IDF
 idf = IDF(inputCol='token_countvector', outputCol='token_idf', minDocFreq=2)
 opinion_idf_model = idf.fit(op_tokens_df)
+op_tokens_df = opinion_idf_model.transform(op_tokens_df)
