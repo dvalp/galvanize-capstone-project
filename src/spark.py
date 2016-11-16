@@ -2,7 +2,8 @@ from src import prepare_court_data
 import pyspark as ps
 from bs4 import BeautifulSoup
 import pandas as pd
-from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGram, CountVectorizer, IDF
+from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGram, \
+        CountVectorizer, IDF, Word2Vec
 
 
 # create an RDD from the data
@@ -50,3 +51,9 @@ op_tokens_df = opinion_cv_model.transform(op_tokens_df)
 idf = IDF(inputCol='token_countvector', outputCol='token_idf', minDocFreq=2)
 opinion_idf_model = idf.fit(op_tokens_df)
 op_tokens_df = opinion_idf_model.transform(op_tokens_df)
+
+# Word2Vec
+w2v = Word2Vec(vectorSize=3, minCount=2, inputCol='tokens_stop', outputCol='token_word2vec')
+opinion_w2v_model = w2v.fit(op_tokens_df)
+op_tokens_df = opinion_w2v_model.transform(op_tokens_df)
+
