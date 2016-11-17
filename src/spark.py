@@ -7,7 +7,7 @@ from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGra
 
 
 # create an RDD from the data
-opinion_lst = prepare_court_data.create_df_from_tar('data/opinions_wash.tar.gz')
+opinion_lst = prepare_court_data.create_df_from_tar('data/opinions_wash.tar.gz', 100)
 opinion_rdd = sc.parallelize(opinion_lst, 15)
 
 # define the subset of columns to use and write it into a schema
@@ -32,15 +32,10 @@ bigram = NGram(inputCol='tokens', outputCol='bigrams', n=2)
 trigram = NGram(inputCol='tokens', outputCol='trigrams', n=3)
 
 # run transformations
-tokens_df = regexTokenizer.transform(test_df)
-tokens_df = remover.transform(tokens_df)
-tokens_df = bigram.transform(tokens_df)
-tokens_df = trigram.transform(tokens_df)
-
-op_tokens_df = regexTokenizer.transform(opinion_df)
-op_tokens_df = remover.transform(op_tokens_df)
-op_tokens_df = bigram.transform(op_tokens_df)
-op_tokens_df = trigram.transform(op_tokens_df)
+opinion_df = regexTokenizer.transform(opinion_df)
+opinion_df = remover.transform(opinion_df)
+opinion_df = bigram.transform(opinion_df)
+opinion_df = trigram.transform(opinion_df)
 
 # CountVectorizer
 cv = CountVectorizer(inputCol='tokens_stop', outputCol='token_countvector', minDF=10.0)
