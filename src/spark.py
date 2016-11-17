@@ -39,19 +39,19 @@ opinion_df = trigram.transform(opinion_df)
 
 # CountVectorizer
 cv = CountVectorizer(inputCol='tokens_stop', outputCol='token_countvector', minDF=10.0)
-opinion_cv_model = cv.fit(op_tokens_df)
-op_tokens_df = opinion_cv_model.transform(op_tokens_df)
+opinion_cv_model = cv.fit(opinion_df)
+opinion_df = opinion_cv_model.transform(opinion_df)
 
 # IDF
 idf = IDF(inputCol='token_countvector', outputCol='token_idf', minDocFreq=10)
-opinion_idf_model = idf.fit(op_tokens_df)
-op_tokens_df = opinion_idf_model.transform(op_tokens_df)
+opinion_idf_model = idf.fit(opinion_df)
+opinion_df = opinion_idf_model.transform(opinion_df)
 
 # Word2Vec
 w2v_2d = Word2Vec(vectorSize=2, minCount=2, inputCol='tokens_stop', outputCol='token_word2vec_2d')
 w2v_large = Word2Vec(vectorSize=250, minCount=2, inputCol='tokens_stop', outputCol='token_word2vec_large')
-opinion_w2v2d_model = w2v_2d.fit(op_tokens_df)
-opinion_w2vlarge_model = w2v_large.fit(op_tokens_df)
-op_tokens_df = opinion_w2v2d_model.transform(op_tokens_df)
-op_tokens_df = opinion_w2vlarge_model.transform(op_tokens_df)
+opinion_w2v2d_model = w2v_2d.fit(opinion_df)
+opinion_w2vlarge_model = w2v_large.fit(opinion_df)
+opinion_df = opinion_w2v2d_model.transform(opinion_df)
+opinion_df = opinion_w2vlarge_model.transform(opinion_df)
 
