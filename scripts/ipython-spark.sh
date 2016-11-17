@@ -2,7 +2,7 @@
 export PYSPARK_PYTHON=/home/ratboy/.virtualenvs/capstone/bin/python3
 export PYSPARK_DRIVER_PYTHON=ipython 
 
-/usr/local/spark/bin/pyspark \
+/home/ratboy/builds/spark/bin/pyspark \
 	--master local[6] \
 	--executor-memory 20G \
 	--driver-memory 20G \

@@ -8,11 +8,12 @@ from bs4 import BeautifulSoup
 # df = pd.read_table('data/citegeist', header=None, names=['rating'], delimiter='=', index_col=0)
 
 # Extract the json files from tar.gz files and return a DataFrame
-def create_df_from_tar(files_tar):
+def create_df_from_tar(files_tar, length=None):
     json_list = []
 
     with tarfile.open(files_tar, mode='r:gz') as tf_files:
-        for f_name in tf_files.getnames():
+        filenames = tf_files.getnames()[:length]
+        for f_name in filenames:
 
             # import the text and create a dict
             text_itm = tf_files.extractfile(f_name)
