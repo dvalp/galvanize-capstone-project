@@ -55,3 +55,9 @@ opinion_w2vlarge_model = w2v_large.fit(opinion_df)
 opinion_df = opinion_w2v2d_model.transform(opinion_df)
 opinion_df = opinion_w2vlarge_model.transform(opinion_df)
 
+# retrieve top 10 number of words for the document
+vocab[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
+
+# save and retrieve dataframe
+opinion_df.write.save('data/opinions-spark-data.parquet')
+opinion_df = spark.read.load('data/opinions-spark-data.parquet')
