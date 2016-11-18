@@ -4,6 +4,8 @@ from bs4 import BeautifulSoup
 import pandas as pd
 from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGram, \
         CountVectorizer, IDF, Word2Vec
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType, FloatType, ArrayType
+from nltk.stem import SnowballStemmer
 
 
 # create an RDD from the data
@@ -59,5 +61,10 @@ opinion_df = opinion_w2vlarge_model.transform(opinion_df)
 vocab[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
 
 # save and retrieve dataframe
-opinion_df.write.save('data/opinions-spark-data.parquet')
-opinion_df = spark.read.load('data/opinions-spark-data.parquet')
+opinion_df.write.save('data/opinions-spark-data.json', format='json', mode='overwrite')
+opinion_df = = spark.read.json('data/opinions-spark-data.json')
+
+# use a udf to stem the tokens using the nltk SnowballStemmer with the English dictionary
+opinion_stemm = SnowballStemmer('english')
+udfStemmer = udf(lambda tokens: [opinion_stemm.stem(word) for word in tokens], ArrayType(StringType()))
+opinion_df = opinion_df.withColumn('tokens', udfStemmer(opinion_df.tokens))
