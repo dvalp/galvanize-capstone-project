@@ -68,3 +68,8 @@ opinion_df = = spark.read.json('data/opinions-spark-data.json')
 opinion_stemm = SnowballStemmer('english')
 udfStemmer = udf(lambda tokens: [opinion_stemm.stem(word) for word in tokens], ArrayType(StringType()))
 opinion_df = opinion_df.withColumn('tokens', udfStemmer(opinion_df.tokens))
+
+# extract the vector from a specific document and take the cosine similarity for all other documents, show the ten nearest
+ref_vec = opinion_df.filter(opinion_df.resource_id == '3990749').first()['token_word2vec_large']
+udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
+opinion_df.withColumn('squared_distance', udfSqDist(opinion_df.token_word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
