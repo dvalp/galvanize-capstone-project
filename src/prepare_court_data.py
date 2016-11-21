@@ -29,8 +29,12 @@ def create_df_from_tar(files_tar, length=None):
             elif json_itm.get('plain_text'):
                 json_itm['parsed_text'] = json_itm.get('plain_text')
 
-            json_itm['cluster_id'] = json_itm['cluster'].split('/')[-2]
-            json_itm['resource_id'] = json_itm['resource_uri'].split('/')[-2]
+            json_itm['cluster_id'] = int(json_itm['cluster'].split('/')[-2])
+            json_itm['resource_id'] = int(json_itm['resource_uri'].split('/')[-2])
+            citations = []
+            for cite in json_itm['opinions_cited']:
+                citations.append(int(cite.split('/')[-2]))
+            json_itm['opinions_cited'] = citations
 
             json_list.append(json_itm)
 
