@@ -80,6 +80,6 @@ udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
 opinion_df.withColumn('squared_distance', udfSqDist(opinion_df.word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
 
 # create a list of terms connected to their stems
-df_wordcount = spark.createDataFrame(lst_wordcount.agg({"*": "count"}).collect())
-df_stems = df_wordcount.withColumn('stem', udf(lambda term: opinion_stemm.stem(term), StringType())(col('terms'))).groupBy('stem').agg(collect_list('terms').alias('terms'))
-df_stems.select('terms').filter(df_stems.stem == 'art').first()[0]
+df_wordcount = spark.createDataFrame(opinion_df.select(explode(opinion_df.tokens_stop).alias('term')).groupBy('term').agg({"*": "count"}).collect())
+df_stems = df_wordcount.withColumn('stem', udf(lambda term: opinion_stemm.stem(term), StringType())(col('term'))).groupBy('stem').agg(collect_list('term').alias('terms'))
+df_stems.select('terms').filter(df_stems.stem == opinion_stemm.stem('artful')).first()[0]
