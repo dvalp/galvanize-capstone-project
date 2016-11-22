@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 import tarfile
 import json
 from bs4 import BeautifulSoup
@@ -39,3 +40,11 @@ def create_df_from_tar(files_tar, length=None):
             json_list.append(json_itm)
 
     return json_list
+
+def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
+    row = opinion_df.filter(opinion_df.resource_id == resource_id).first()
+    term_stems = np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
+    word_lists = []
+    for stem in term_stems:
+        word_lists.append(df_stems.select('terms').filter(df_stems.stem == stem).first()[0])
+    return word_lists

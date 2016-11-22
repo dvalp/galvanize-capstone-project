@@ -18,7 +18,6 @@ opinion_rdd = sc.parallelize(opinion_lst, 15)
 
 # define the subset of columns to use and write it into a schema
 df_columns = ['cluster_id', 'resource_id', 'parsed_text', 'per_curiam', 'opinions_cited', 'type']
-# fields = [StructField(field_name, StringType(), True) for field_name in df_columns]
 fields = [StructField('cluster_id', IntegerType(), True), 
         StructField('resource_id', IntegerType(), True),
         StructField('parsed_text', StringType(), True),
@@ -62,10 +61,10 @@ opinion_df = opinion_idf_model.transform(opinion_df)
 # Word2Vec
 w2v_2d = Word2Vec(vectorSize=2, minCount=2, inputCol='tokens', outputCol='word2vec_2d')
 w2v_large = Word2Vec(vectorSize=250, minCount=2, inputCol='tokens', outputCol='word2vec_large')
-opinion_w2v2d_model = w2v_2d.fit(opinion_df)
-opinion_w2vlarge_model = w2v_large.fit(opinion_df)
-opinion_df = opinion_w2v2d_model.transform(opinion_df)
-opinion_df = opinion_w2vlarge_model.transform(opinion_df)
+w2v2d_model = w2v_2d.fit(opinion_df)
+w2vlarge_model = w2v_large.fit(opinion_df)
+opinion_df = w2v2d_model.transform(opinion_df)
+opinion_df = w2vlarge_model.transform(opinion_df)
 
 # retrieve top 10 number of words for the document, assumes existence of 'row' containg one row from the dataframe
 np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
@@ -83,3 +82,7 @@ opinion_df.withColumn('squared_distance', udfSqDist(opinion_df.word2vec_large)).
 df_wordcount = spark.createDataFrame(opinion_df.select(explode(opinion_df.tokens_stop).alias('term')).groupBy('term').agg({"*": "count"}).collect())
 df_stems = df_wordcount.withColumn('stem', udf(lambda term: opinion_stemm.stem(term), StringType())(col('term'))).groupBy('stem').agg(collect_list('term').alias('terms'))
 df_stems.select('terms').filter(df_stems.stem == opinion_stemm.stem('artful')).first()[0]
+
+# create a count for each opinion of the number of times it has been cited by other Washington opinions
+df_citecount = spark.createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')).groupBy('cites').agg({"*": "count"}))
+df_citecount.orderBy('count(1)', ascending=False).show()
