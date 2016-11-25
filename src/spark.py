@@ -84,5 +84,5 @@ df_stems = df_wordcount.withColumn('stem', udf(lambda term: opinion_stemm.stem(t
 df_stems.select('terms').filter(df_stems.stem == opinion_stemm.stem('artful')).first()[0]
 
 # create a count for each opinion of the number of times it has been cited by other Washington opinions
-df_citecount = spark.createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')).groupBy('cites').agg({"*": "count"}))
+df_citecount = spark.createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')).groupBy('cites').agg({"*": "count"}).collect())
 df_citecount.orderBy('count(1)', ascending=False).show()
