@@ -8,8 +8,7 @@ from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGra
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
         FloatType, ArrayType, BooleanType
 from nltk.stem import SnowballStemmer
-from pyspark.sql.functions import udf, col
-from pyspark.sql.functions import explode, collect_list
+from pyspark.sql.functions import udf, col, explode, collect_list
 
 
 # create an RDD from the data, choose number of rows to include
