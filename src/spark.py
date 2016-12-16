@@ -70,12 +70,16 @@ np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['t
 
 # save and retrieve dataframe
 opinion_df.write.save('data/opinions-spark-data.json', format='json', mode='overwrite')
-opinion_df = = spark.read.json('data/opinions-spark-data.json')
+opinion_df = spark.read.json('data/opinions-spark-data.json')
 
 # extract the vector from a specific document and take the cosine similarity for all other documents, show the ten nearest
 ref_vec = opinion_df.filter(opinion_df.resource_id == '3990749').first()['word2vec_large']
+
 udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
 opinion_df.withColumn('squared_distance', udfSqDist(opinion_df.word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
+
+udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm() * cell.norm())), FloatType())
+opinion_df.withColumn('cos_similarity', udf_cos_sim(opinion_df.word2vec_large)).sort(col('cos_similarity'), ascending=False).select('cluster_id', 'resource_id', 'cos_similarity').show(10)
 
 # create a list of terms connected to their stems
 df_wordcount = spark.createDataFrame(opinion_df.select(explode(opinion_df.tokens_stop).alias('term')).groupBy('term').agg({"*": "count"}).collect())
