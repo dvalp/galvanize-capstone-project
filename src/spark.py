@@ -78,7 +78,7 @@ ref_vec = opiniondf_w2vlarge.filter(opiniondf_w2vlarge.resource_id == '3990749')
 udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
 opiniondf_w2vlarge.withColumn('squared_distance', udfSqDist(opiniondf_w2vlarge.word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
 
-udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm() * cell.norm())), FloatType())
+udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm(2) * cell.norm(2))), FloatType())
 opinion_df.withColumn('cos_similarity', udf_cos_sim(opinion_df.word2vec_large)).sort(col('cos_similarity'), ascending=False).select('cluster_id', 'resource_id', 'cos_similarity').show(10)
 
 # create a list of terms connected to their stems
