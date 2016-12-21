@@ -33,50 +33,50 @@ opinion_df = spark.createDataFrame(reduced_rdd, schema)
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
 regexTokenizer = RegexTokenizer(inputCol="parsed_text", outputCol="raw_tokens", pattern="\\W", minTokenLength=3)
 remover = StopWordsRemover(inputCol='raw_tokens', outputCol='tokens_stop')
-opinion_df = regexTokenizer.transform(opinion_df)
-opinion_df = remover.transform(opinion_df)
+opiniondf_tokenized = regexTokenizer.transform(opinion_df)
+opiniondf_nostop = remover.transform(opiniondf_tokenized)
 
 # use a udf to stem the tokens using the nltk SnowballStemmer with the English dictionary
 opinion_stemm = SnowballStemmer('english')
 udfStemmer = udf(lambda tokens: [opinion_stemm.stem(word) for word in tokens], ArrayType(StringType()))
-opinion_df = opinion_df.withColumn('tokens', udfStemmer(opinion_df.tokens_stop))
+opiniondf_stemmed = opiniondf_nostop.withColumn('tokens', udfStemmer(opiniondf_nostop.tokens_stop))
 
 # create n-grams
 bigram = NGram(inputCol='tokens', outputCol='bigrams', n=2)
 trigram = NGram(inputCol='tokens', outputCol='trigrams', n=3)
-opinion_df = bigram.transform(opinion_df)
-opinion_df = trigram.transform(opinion_df)
+opiniondf_bigram = bigram.transform(opiniondf_stemmed)
+opiniondf_trigram = trigram.transform(opiniondf_bigram)
 
 # CountVectorizer
 cv = CountVectorizer(inputCol='tokens', outputCol='token_countvector', minDF=10.0)
-opinion_cv_model = cv.fit(opinion_df)
-opinion_df = opinion_cv_model.transform(opinion_df)
+opinion_cv_model = cv.fit(opiniondf_trigram)
+opiniondf_countvector = opinion_cv_model.transform(opiniondf_trigram)
 
 # IDF
 idf = IDF(inputCol='token_countvector', outputCol='token_idf', minDocFreq=10)
-opinion_idf_model = idf.fit(opinion_df)
-opinion_df = opinion_idf_model.transform(opinion_df)
+opinion_idf_model = idf.fit(opiniondf_countvector)
+opiniondf_idf = opinion_idf_model.transform(opiniondf_countvector)
 
 # Word2Vec
 w2v_2d = Word2Vec(vectorSize=2, minCount=2, inputCol='tokens', outputCol='word2vec_2d')
 w2v_large = Word2Vec(vectorSize=250, minCount=2, inputCol='tokens', outputCol='word2vec_large')
-w2v2d_model = w2v_2d.fit(opinion_df)
-w2vlarge_model = w2v_large.fit(opinion_df)
-opinion_df = w2v2d_model.transform(opinion_df)
-opinion_df = w2vlarge_model.transform(opinion_df)
+w2v2d_model = w2v_2d.fit(opiniondf_idf)
+w2vlarge_model = w2v_large.fit(opiniondf_idf)
+opiniondf_w2v2d = w2v2d_model.transform(opiniondf_idf)
+opiniondf_w2vlarge = w2vlarge_model.transform(opiniondf_w2v2d)
 
 # retrieve top 10 number of words for the document, assumes existence of 'row' containg one row from the dataframe
 np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
 
 # save and retrieve dataframe
-opinion_df.write.save('data/opinions-spark-data.json', format='json', mode='overwrite')
-opinion_df = spark.read.json('data/opinions-spark-data.json')
+opiniondf_w2vlarge.write.save('data/opinions-spark-data.json', format='json', mode='overwrite')
+opinion_loaded = spark.read.json('data/opinions-spark-data.json')
 
 # extract the vector from a specific document and take the cosine similarity for all other documents, show the ten nearest
-ref_vec = opinion_df.filter(opinion_df.resource_id == '3990749').first()['word2vec_large']
+ref_vec = opiniondf_w2vlarge.filter(opiniondf_w2vlarge.resource_id == '3990749').first()['word2vec_large']
 
 udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
-opinion_df.withColumn('squared_distance', udfSqDist(opinion_df.word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
+opiniondf_w2vlarge.withColumn('squared_distance', udfSqDist(opiniondf_w2vlarge.word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
 
 udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm() * cell.norm())), FloatType())
 opinion_df.withColumn('cos_similarity', udf_cos_sim(opinion_df.word2vec_large)).sort(col('cos_similarity'), ascending=False).select('cluster_id', 'resource_id', 'cos_similarity').show(10)
