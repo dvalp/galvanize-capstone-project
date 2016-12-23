@@ -27,6 +27,10 @@ def create_df_from_tar(files_tar, length=None):
             elif json_itm.get('html_lawbox'):
                 json_itm['html_lawbox'] = json_itm['html_lawbox'].replace('<blockquote>', '"').replace('</blockquote>', '"')
                 json_itm['parsed_text'] = BeautifulSoup(json_itm.get('html_lawbox'), 'lxml').text
+            elif json_itm.get('html_with_citations'):
+                json_itm['html_with_citations'] = json_itm['html_with_citations'].replace('<blockquote>', '"') \
+                        .replace('</blockquote>', '"')
+                json_itm['html_with_citations'] = BeautifulSoup(json_itm.get('html_with_citations'), 'lxml').text
             elif json_itm.get('plain_text'):
                 json_itm['parsed_text'] = json_itm.get('plain_text')
 
