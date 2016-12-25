@@ -60,3 +60,16 @@ def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
     for stem in term_stems:
         word_lists.append(df_stems.select('terms').filter(df_stems.stem == stem).first()[0])
     return word_lists
+
+def create_df(tar_file, length=None):
+    '''
+    Use Spark to import files from a tarfile and store the json information directly into a Spark dataframe. 
+    
+    This should replace the previous function: create_list_from_tar()
+    
+    First, loop through the TarInfo objects to get filenames rather than loading the whole list of names at once. 
+    Second, load each file one at a time to parallelize them, rather than loading all the files into memory.
+    Finally, read the json and separate the fields into columns if possible.
+    '''
+    pass
+    
