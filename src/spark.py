@@ -12,7 +12,7 @@ from pyspark.sql.functions import udf, col, explode, collect_list
 
 
 # create an RDD from the data, choose number of rows to include
-opinion_lst = prepare_court_data.create_df_from_tar('data/opinions_wash.tar.gz', 100)
+opinion_lst = prepare_court_data.create_list_from_tar('data/opinions_wash.tar.gz', 100)
 opinion_rdd = sc.parallelize(opinion_lst, 15)
 
 # define the subset of columns to use and write it into a schema
