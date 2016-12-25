@@ -8,8 +8,11 @@ from bs4 import BeautifulSoup
 # CiteGeist uses tfidf as part of its ranking and isn't currently helpful to my project
 # df = pd.read_table('data/citegeist', header=None, names=['rating'], delimiter='=', index_col=0)
 
-# Extract the json files from tar.gz files and return a DataFrame
-def create_df_from_tar(files_tar, length=None):
+
+def create_list_from_tar(files_tar, length=None):
+    '''
+    Extract the json files from tar.gz files and return a list of selected data
+    '''
     json_list = []
 
     with tarfile.open(files_tar, mode='r:gz') as tf_files:
@@ -46,6 +49,11 @@ def create_df_from_tar(files_tar, length=None):
     return json_list
 
 def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
+    '''
+    Take the stemmed words in a document and return the possible words (from all documents) that could 
+    could have been used to create the stem. This doesn't (yet) take into account whether the specific 
+    words actually exist in the current document.
+    '''
     row = opinion_df.filter(opinion_df.resource_id == resource_id).first()
     term_stems = np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
     word_lists = []
