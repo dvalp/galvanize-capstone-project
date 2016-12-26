@@ -73,3 +73,10 @@ def create_df(tar_file, length=None):
     '''
     pass
     
+def import_opinions():
+    tf_path = 'data/opinions_wash.tar.gz'
+    tf = tarfile.open(tf_path, mode='r:gz')
+    for f in tf:
+        lst.append(tf.extractfile(f).readline())
+    
+    tf.close()
