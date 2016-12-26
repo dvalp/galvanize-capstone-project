@@ -67,7 +67,7 @@ def create_df(tar_file, length=None):
     
     This should replace the previous function: create_list_from_tar()
     
-    First, loop through the TarInfo objects to get filenames rather than loading the whole list of names at once. 
+    First, loop through the TarInfo objects to get files rather than loading the whole list of names at once. 
     Second, load each file one at a time to parallelize them, rather than loading all the files into memory.
     Finally, read the json and separate the fields into columns if possible.
     '''
@@ -75,8 +75,10 @@ def create_df(tar_file, length=None):
     
 def import_opinions():
     tf_path = 'data/opinions_wash.tar.gz'
-    tf = tarfile.open(tf_path, mode='r:gz')
-    for f in tf:
-        lst.append(tf.extractfile(f).readline())
-    
-    tf.close()
+    json_dict = []
+
+    with tarfile.open(tf_path, mode='r:gz') as tf:
+        for f in tf:
+            json_dict.append(json.loads(tf.extractfile(f).read().decode()))
+
+    return json_dict
