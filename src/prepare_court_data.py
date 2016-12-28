@@ -3,6 +3,8 @@ import numpy as np
 import tarfile
 import json
 from bs4 import BeautifulSoup
+from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
+        FloatType, ArrayType, BooleanType
 
 # Import the CiteGeist file into a dataframe
 # CiteGeist uses tfidf as part of its ranking and isn't currently helpful to my project
@@ -73,12 +75,33 @@ def create_df(tar_file, length=None):
     '''
     pass
     
-def import_opinions():
-    tf_path = 'data/opinions_wash.tar.gz'
-    json_dict = []
+def import_opinions_as_dataframe(tf_path = 'data/opinions_wash.tar.gz'):
+
+    fields = [
+            StructField('absolute_url', StringType(), True),
+            StructField('author', StringType(), True),
+            StructField('cluster', StringType(), True),
+            StructField('date_created', StringType(), True),
+            StructField('date_modified', StringType(), True),
+            StructField('download_url', StringType(), True),
+            StructField('extracted_by_ocr', BooleanType(), True),
+            StructField('html', StringType(), True),
+            StructField('html_columbia', StringType(), True),
+            StructField('html_lawbox', StringType(), True),
+            StructField('html_with_citations', StringType(), True),
+            StructField('joined_by', ArrayType(StringType()), True),
+            StructField('local_path', StringType(), True),
+            StructField('opinions_cited', ArrayType(StringType()), True),
+            StructField('per_curiam', BooleanType(), True), 
+            StructField('plain_text', StringType(), True),
+            StructField('resource_uri', StringType(), True),
+            StructField('sha1', StringType(), True),
+            StructField('type', StringType(), True)]
+    schema = StructType(fields)
 
     with tarfile.open(tf_path, mode='r:gz') as tf:
-        for f in tf:
-            json_dict.append(json.loads(tf.extractfile(f).read().decode()))
+        # create a generator expression to avoid loading everything into memory at once
+        ops = (json.loads(tf.extractfile(f).read().decode()) for f in tf)
+        raw_dataframe = spark.createDataFrame(ops, schema)
 
-    return json_dict
+    return raw_dataframe
