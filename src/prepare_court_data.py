@@ -6,10 +6,6 @@ from bs4 import BeautifulSoup
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
         FloatType, ArrayType, BooleanType
 
-# Import the CiteGeist file into a dataframe
-# CiteGeist uses tfidf as part of its ranking and isn't currently helpful to my project
-# df = pd.read_table('data/citegeist', header=None, names=['rating'], delimiter='=', index_col=0)
-
 
 def create_list_from_tar(files_tar, length=None):
     '''
@@ -63,19 +59,18 @@ def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
         word_lists.append(df_stems.select('terms').filter(df_stems.stem == stem).first()[0])
     return word_lists
 
-def create_df(tar_file, length=None):
-    '''
-    Use Spark to import files from a tarfile and store the json information directly into a Spark dataframe. 
-    
-    This should replace the previous function: create_list_from_tar()
-    
-    First, loop through the TarInfo objects to get files rather than loading the whole list of names at once. 
-    Second, load each file one at a time to parallelize them, rather than loading all the files into memory.
-    Finally, read the json and separate the fields into columns if possible.
-    '''
-    pass
-    
 def import_opinions_as_dataframe(tf_path = 'data/opinions_wash.tar.gz'):
+    '''
+    Import the data from a tar.gz file. Use a generator so the data isn't loaded until necessary.
+
+    The tarfile module provides a TarInfo object that can be used to identify each file for extraction.
+    The extractfile() method returns a file object that has a read() method which returns a byte 
+    representation of the file which can be decoded into a string. The string can then be translated
+    into a dict by json.loads(). Each json object in dict form can be read into the dataframe.
+
+    The schema is important because inferring the data type from a dict is deprecated in Spark and 
+    sometimes assumes the wrong type.
+    '''
 
     fields = [
             StructField('absolute_url', StringType(), True),
