@@ -89,3 +89,9 @@ df_stems.select('terms').filter(df_stems.stem == opinion_stemm.stem('artful')).f
 # create a count for each opinion of the number of times it has been cited by other Washington opinions
 df_citecount = spark.createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')).groupBy('cites').agg({"*": "count"}).collect())
 df_citecount.orderBy('count(1)', ascending=False).show()
+
+# fill in null values for opinion text and then join them into one column, then drop the redundant columns
+raw_opinion_df = import_opinions_as_dataframe()
+raw_opinion_df_nonull = raw_opinion_df.fillna('', ['html', 'html_columbia', 'html_lawbox', 'html_with_citations', 'plain_text'])
+raw_opinion_df_combined_text = raw_opinion_df_nonull.withColumn('text', concat(
+    col('html'), col('html_lawbox'), col('html_columbia'), col('html_with_citations'), col('plain_text')))
