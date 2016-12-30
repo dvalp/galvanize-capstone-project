@@ -11,22 +11,13 @@ from nltk.stem import SnowballStemmer
 from pyspark.sql.functions import udf, col, explode, collect_list
 
 
-# create an RDD from the data, choose number of rows to include
-opinion_lst = prepare_court_data.create_list_from_tar('data/opinions_wash.tar.gz', 100)
-opinion_rdd = sc.parallelize(opinion_lst, 15)
-
-# define the subset of columns to use and write it into a schema
-df_columns = ['cluster_id', 'resource_id', 'parsed_text', 'per_curiam', 'opinions_cited', 'type']
-fields = [StructField('cluster_id', IntegerType(), True), 
-        StructField('resource_id', IntegerType(), True),
-        StructField('parsed_text', StringType(), True),
-        StructField('per_curiam', BooleanType(), True),
-        StructField('opinions_cited', ArrayType(IntegerType()), True),
-        StructField('type', StringType(), True)]
-schema = StructType(fields)
-
-# create the dataframe from just the columns we want
-reduced_rdd = opinion_rdd.map(lambda row: [row.get(key, '') for key in df_columns])
+# fill in null values for opinion text and then join them into one column
+raw_opinion_df = import_opinions_as_dataframe()
+raw_opinion_df_nonull = raw_opinion_df.fillna('', ['html', 'html_columbia', 'html_lawbox', 'html_with_citations', 'plain_text'])
+raw_opinion_df_combined_text = raw_opinion_df_nonull.withColumn('text', concat(
+    col('html'), col('html_lawbox'), col('html_columbia'), col('html_with_citations'), col('plain_text')))
+udfBS4 = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
+opinion_df = raw_opinion_df_combined_text.withColumn('parsed_text', (col('text')))
 opinion_df = spark.createDataFrame(reduced_rdd, schema)
 
 # Parse tokens from text, remove stopwords
@@ -90,10 +81,3 @@ df_stems.select('terms').filter(df_stems.stem == opinion_stemm.stem('artful')).f
 df_citecount = spark.createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')).groupBy('cites').agg({"*": "count"}).collect())
 df_citecount.orderBy('count(1)', ascending=False).show()
 
-# fill in null values for opinion text and then join them into one column, then drop the redundant columns
-raw_opinion_df = import_opinions_as_dataframe()
-raw_opinion_df_nonull = raw_opinion_df.fillna('', ['html', 'html_columbia', 'html_lawbox', 'html_with_citations', 'plain_text'])
-raw_opinion_df_combined_text = raw_opinion_df_nonull.withColumn('text', concat(
-    col('html'), col('html_lawbox'), col('html_columbia'), col('html_with_citations'), col('plain_text')))
-udfBS4 = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
-opinion_df = raw_opinion_df_combined_text.withColumn('parsed_text', udfBS4(col('text')))
