@@ -8,7 +8,7 @@ from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGra
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
         FloatType, ArrayType, BooleanType
 from nltk.stem import SnowballStemmer
-from pyspark.sql.functions import udf, col, explode, collect_list, to_date
+from pyspark.sql.functions import udf, col, explode, collect_list, to_date, concat
 
 
 # Import json objects from tar file
