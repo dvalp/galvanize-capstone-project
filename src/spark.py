@@ -8,7 +8,7 @@ from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGra
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
         FloatType, ArrayType, BooleanType
 from nltk.stem import SnowballStemmer
-from pyspark.sql.functions import udf, col, explode, collect_list
+from pyspark.sql.functions import udf, col, explode, collect_list, to_date
 
 
 # Import json objects from tar file
@@ -18,12 +18,27 @@ raw_opinion_df = import_opinions_as_dataframe()
 udfparse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
 udfBS4 = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
 
-opinion_df = raw_opinion_df \
+# Convert data to correct types and parse out HTML tags
+raw_opinion_convert_data = raw_opinion_df \
         .fillna('', ['html', 'html_columbia', 'html_lawbox', 'html_with_citations', 'plain_text']) \
         .withColumn('text', concat(col('html'), col('html_lawbox'), col('html_columbia'), col('html_with_citations'), col('plain_text'))) \
         .withColumn('parsed_text', udfBS4(col('text'))) \
         .withColumn('cluster_id', udfparse_id(col('cluster'))) \
-        .withColumn('resource_id', udfparse_id(col('resource_uri')))
+        .withColumn('resource_id', udfparse_id(col('resource_uri'))) \
+        .withColumn('created_date', to_date('date_created')) \
+        .withColumn('modified_date', to_date('date_modified'))
+        
+# Drop columns that are no longer needed
+opinion_df = raw_opinion_convert_data \
+        .drop('cluster') \
+        .drop('date_created') \
+        .drop('date_modified') \
+        .drop('html') \
+        .drop('html_columbia') \
+        .drop('html_lawbox') \
+        .drop('html_with_citations') \
+        .drop('plain_text') \
+        .drop('resource_uri')
 
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')

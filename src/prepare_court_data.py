@@ -7,45 +7,6 @@ from pyspark.sql.types import StructType, StructField, IntegerType, StringType, 
         FloatType, ArrayType, BooleanType
 
 
-def create_list_from_tar(files_tar, length=None):
-    '''
-    Extract the json files from tar.gz files and return a list of selected data
-    '''
-    json_list = []
-
-    with tarfile.open(files_tar, mode='r:gz') as tf_files:
-        filenames = tf_files.getnames()[:length]
-        for f_name in filenames:
-
-            # import the text and create a dict
-            text_itm = tf_files.extractfile(f_name)
-            json_itm = json.loads(text_itm.read().decode())
-
-            # parse the html out of each record as it is imported
-            if json_itm.get('html_columbia'):
-                json_itm['html_columbia'] = json_itm['html_columbia'].replace('<blockquote>', '"').replace('</blockquote>', '"')
-                json_itm['parsed_text'] = BeautifulSoup(json_itm['html_columbia'], 'lxml').text
-            elif json_itm.get('html_lawbox'):
-                json_itm['html_lawbox'] = json_itm['html_lawbox'].replace('<blockquote>', '"').replace('</blockquote>', '"')
-                json_itm['parsed_text'] = BeautifulSoup(json_itm.get('html_lawbox'), 'lxml').text
-            elif json_itm.get('html_with_citations'):
-                json_itm['html_with_citations'] = json_itm['html_with_citations'].replace('<blockquote>', '"') \
-                        .replace('</blockquote>', '"')
-                json_itm['html_with_citations'] = BeautifulSoup(json_itm.get('html_with_citations'), 'lxml').text
-            elif json_itm.get('plain_text'):
-                json_itm['parsed_text'] = json_itm.get('plain_text')
-
-            json_itm['cluster_id'] = int(json_itm['cluster'].split('/')[-2])
-            json_itm['resource_id'] = int(json_itm['resource_uri'].split('/')[-2])
-            citations = []
-            for cite in json_itm['opinions_cited']:
-                citations.append(int(cite.split('/')[-2]))
-            json_itm['opinions_cited'] = citations
-
-            json_list.append(json_itm)
-
-    return json_list
-
 def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
     '''
     Take the stemmed words in a document and return the possible words (from all documents) that could 
@@ -96,7 +57,7 @@ def import_opinions_as_dataframe(tf_path = 'data/opinions_wash.tar.gz'):
 
     with tarfile.open(tf_path, mode='r:gz') as tf:
         # create a generator expression to avoid loading everything into memory at once
-        ops = (json.loads(tf.extractfile(f).read().decode()) for f in tf)
-        raw_dataframe = spark.createDataFrame(ops, schema)
+        opinions = (json.loads(tf.extractfile(f).read().decode()) for f in tf)
+        raw_dataframe = spark.createDataFrame(opinions, schema)
 
     return raw_dataframe
