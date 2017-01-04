@@ -15,16 +15,16 @@ from pyspark.sql.functions import udf, col, explode, collect_list, to_date, conc
 raw_opinion_df = import_opinions_as_dataframe()
 
 # fill in null values for opinion text and then join them into one column and use BeautifulSoup
-udfparse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
-udfBS4 = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
+udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
+udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
 
 # Convert data to correct types and parse out HTML tags
 raw_opinion_convert_data = raw_opinion_df \
         .fillna('', ['html', 'html_columbia', 'html_lawbox', 'html_with_citations', 'plain_text']) \
-        .withColumn('text', concat(col('html'), col('html_lawbox'), col('html_columbia'), col('html_with_citations'), col('plain_text'))) \
-        .withColumn('parsed_text', udfBS4(col('text'))) \
-        .withColumn('cluster_id', udfparse_id(col('cluster'))) \
-        .withColumn('resource_id', udfparse_id(col('resource_uri'))) \
+        .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'html_with_citations', 'plain_text')) \
+        .withColumn('parsed_text', udf_remove_html_tags('text')) \
+        .withColumn('cluster_id', udfparse_id('cluster')) \
+        .withColumn('resource_id', udfparse_id('resource_uri')) \
         .withColumn('created_date', to_date('date_created')) \
         .withColumn('modified_date', to_date('date_modified'))
         
