@@ -12,7 +12,9 @@ from pyspark.sql.functions import udf, col, explode, collect_list, to_date, conc
 
 
 # Import json objects from tar file
-raw_opinion_df = import_opinions_as_dataframe()
+raw_opinion_df = prepare_court_data.import_dataframe(spark, 'opinion')
+raw_docket_df = prepare_court_data.import_dataframe(spark, 'docket')
+raw_cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
 
 # fill in null values for opinion text and then join them into one column and use BeautifulSoup
 udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
@@ -83,7 +85,7 @@ np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['t
 opiniondf_w2vlarge.write.save('data/opinions-spark-data.json', format='json', mode='overwrite')
 opinion_loaded = spark.read.json('data/opinions-spark-data.json')
 
-# extract the vector from a specific document and take the cosine similarity for all other documents, show the ten nearest
+# extract the vector from a specific document and take the squared distance or cosine similarity for all other documents, show the ten nearest
 ref_vec = opiniondf_w2vlarge.filter(opiniondf_w2vlarge.resource_id == '3990749').first()['word2vec_large']
 
 udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
