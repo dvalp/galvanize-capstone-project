@@ -22,7 +22,7 @@ udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, String
 
 # Convert data to correct types and parse out HTML tags
 raw_opinion_convert_data = raw_opinion_df \
-        .fillna('', ['html', 'html_columbia', 'html_lawbox', 'html_with_citations', 'plain_text']) \
+        .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
         .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'html_with_citations', 'plain_text')) \
         .withColumn('parsed_text', udf_remove_html_tags('text')) \
         .withColumn('cluster_id', udfparse_id('cluster')) \
