@@ -21,17 +21,19 @@ udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
 udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
 
 # Convert data to correct types and parse out HTML tags
-raw_opinion_convert_types = raw_opinion_df \
+raw_opinion_fix_columns = raw_opinion_df \
         .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
-        .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'html_with_citations', 'plain_text')) \
+        .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'plain_text')) \
         .withColumn('parsed_text', udf_remove_html_tags('text')) \
         .withColumn('cluster_id', udfparse_id('cluster')) \
         .withColumn('resource_id', udfparse_id('resource_uri')) \
         .withColumn('created_date', to_date('date_created')) \
         .withColumn('modified_date', to_date('date_modified'))
 
-raw_docket_convert_types = raw_docket_df \
-        .sithColumn(
+raw_docket_fix_columns = raw_docket_df \
+        .withColumn('date_blocked_dt', to_date('date_blocked')) \
+        .withColumn('date_created_dt', to_date('date_created')) \
+        .withColumn('date_modified_dt', to_date('date_modified'))
 
 # Drop columns that are no longer needed
 opinion_df = raw_opinion_convert_types \
@@ -45,7 +47,25 @@ opinion_df = raw_opinion_convert_types \
         .drop('plain_text') \
         .drop('resource_uri')
 
-
+docket_df = raw_docket_convert_types \
+        .drop('assigned_to') \
+        .drop('audio_files') \
+        .drop('cause') \
+        .drop('date_argued') \
+        .drop('date_cert_denied') \
+        .drop('date_cert_granted') \
+        .drop('date_filed') \
+        .drop('date_last_filing') \
+        .drop('date_reargued') \
+        .drop('date_reargument_denied') \
+        .drop('date_terminated') \
+        .drop('filepath_ia') \
+        .drop('filepath_local') \
+        .drop('jurisdiction_type') \
+        .drop('jury_demand') \
+        .drop('nature_of_suit') \
+        .drop('pacer_case_id') \
+        .drop('referred_to')
 
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
