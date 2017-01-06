@@ -36,7 +36,7 @@ raw_docket_fix_columns = raw_docket_df \
         .withColumn('date_modified_dt', to_date('date_modified'))
 
 # Drop columns that are no longer needed
-opinion_df = raw_opinion_convert_types \
+opinion_df = raw_opinion_fix_columns \
         .drop('cluster') \
         .drop('date_created') \
         .drop('date_modified') \
@@ -47,7 +47,7 @@ opinion_df = raw_opinion_convert_types \
         .drop('plain_text') \
         .drop('resource_uri')
 
-docket_df = raw_docket_convert_types \
+docket_df = raw_docket_fix_columns \
         .drop('assigned_to') \
         .drop('audio_files') \
         .drop('cause') \
