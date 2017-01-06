@@ -21,7 +21,7 @@ udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
 udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
 
 # Convert data to correct types and parse out HTML tags
-raw_opinion_convert_data = raw_opinion_df \
+raw_opinion_convert_types = raw_opinion_df \
         .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
         .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'html_with_citations', 'plain_text')) \
         .withColumn('parsed_text', udf_remove_html_tags('text')) \
@@ -29,9 +29,12 @@ raw_opinion_convert_data = raw_opinion_df \
         .withColumn('resource_id', udfparse_id('resource_uri')) \
         .withColumn('created_date', to_date('date_created')) \
         .withColumn('modified_date', to_date('date_modified'))
-        
+
+raw_docket_convert_types = raw_docket_df \
+        .sithColumn(
+
 # Drop columns that are no longer needed
-opinion_df = raw_opinion_convert_data \
+opinion_df = raw_opinion_convert_types \
         .drop('cluster') \
         .drop('date_created') \
         .drop('date_modified') \
@@ -41,6 +44,8 @@ opinion_df = raw_opinion_convert_data \
         .drop('html_with_citations') \
         .drop('plain_text') \
         .drop('resource_uri')
+
+
 
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
