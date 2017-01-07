@@ -35,6 +35,11 @@ raw_docket_fix_columns = raw_docket_df \
         .withColumn('date_created_dt', to_date('date_created')) \
         .withColumn('date_modified_dt', to_date('date_modified'))
 
+raw_cluster_fix_columns = raw_cluster_df \
+        .withColumn('date_created_dt', to_date('date_created')) \
+        .withColumn('date_filed_dt', to_date('date_filed')) \
+        .withColumn('date_modified_dt', to_date('date_modified'))
+
 # Drop columns that are no longer needed
 opinion_df = raw_opinion_fix_columns \
         .drop('cluster') \
@@ -66,6 +71,21 @@ docket_df = raw_docket_fix_columns \
         .drop('nature_of_suit') \
         .drop('pacer_case_id') \
         .drop('referred_to')
+
+cluster_df = raw_cluster_fix_columns \
+        .drop('citation_id') \
+        .drop('date_blocked') \
+        .drop('lexis_cite') \
+        .drop('nature_of_suit') \
+        .drop('neutral_cite') \
+        .drop('non_participating_judges') \
+        .drop('panel') \
+        .drop('procedural_history') \
+        .drop('scdb_decision_direction') \
+        .drop('scdb_id') \
+        .drop('scdb_votes_majority') \
+        .drop('scdb_votes_minority') \
+        .drop('scotus_early_cite')
 
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')

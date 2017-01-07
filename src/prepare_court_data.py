@@ -145,7 +145,7 @@ def get_doc_schema(doc_type):
             StructField('docket', StringType(), True),
             StructField('sub_opinions', StringType(), True),
             StructField('scdb_decision_direction', StringType(), True),
-            StructField('citation_count', StringType(), True),
+            StructField('citation_count', IntegerType(), True),
             StructField('date_blocked', StringType(), True),
             StructField('precedential_status', StringType(), True),
             StructField('slug', StringType(), True),
