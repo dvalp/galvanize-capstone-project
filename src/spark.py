@@ -25,20 +25,23 @@ raw_opinion_fix_columns = raw_opinion_df \
         .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
         .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'plain_text')) \
         .withColumn('parsed_text', udf_remove_html_tags('text')) \
-        .withColumn('cluster_id', udfparse_id('cluster')) \
-        .withColumn('resource_id', udfparse_id('resource_uri')) \
+        .withColumn('cluster_id', udf_parse_id('cluster')) \
+        .withColumn('resource_id', udf_parse_id('resource_uri')) \
         .withColumn('created_date', to_date('date_created')) \
         .withColumn('modified_date', to_date('date_modified'))
 
 raw_docket_fix_columns = raw_docket_df \
         .withColumn('date_blocked_dt', to_date('date_blocked')) \
         .withColumn('date_created_dt', to_date('date_created')) \
-        .withColumn('date_modified_dt', to_date('date_modified'))
+        .withColumn('date_modified_dt', to_date('date_modified')) \
+        .withColumn('docket_id', udf_parse_id('resource_uri'))
 
 raw_cluster_fix_columns = raw_cluster_df \
         .withColumn('date_created_dt', to_date('date_created')) \
         .withColumn('date_filed_dt', to_date('date_filed')) \
-        .withColumn('date_modified_dt', to_date('date_modified'))
+        .withColumn('date_modified_dt', to_date('date_modified')) \
+        .withColumn('docket_id', udf_parse_id('docket')) \
+        .withColumn('cluster_id', udf_parse_id('resource_uri'))
 
 # Drop columns that are no longer needed
 opinion_df = raw_opinion_fix_columns \
@@ -134,17 +137,37 @@ opinion_loaded = spark.read.json('data/opinions-spark-data.json')
 ref_vec = opiniondf_w2vlarge.filter(opiniondf_w2vlarge.resource_id == '3990749').first()['word2vec_large']
 
 udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
-opiniondf_w2vlarge.withColumn('squared_distance', udfSqDist(opiniondf_w2vlarge.word2vec_large)).sort(col('squared_distance'), ascending=True).select('cluster_id', 'resource_id', 'squared_distance').show(10)
+opiniondf_w2vlarge \
+        .withColumn('squared_distance', udfSqDist(opiniondf_w2vlarge.word2vec_large)) \
+        .sort(col('squared_distance'), ascending=True) \
+        .select('cluster_id', 'resource_id', 'squared_distance').show(10)
 
 udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm(2) * cell.norm(2))), FloatType())
-opiniondf_w2vlarge.withColumn('cos_similarity', udf_cos_sim(opiniondf_w2vlarge.word2vec_large)).sort(col('cos_similarity'), ascending=False).select('cluster_id', 'resource_id', 'cos_similarity').show(10)
+opiniondf_w2vlarge \
+        .withColumn('cos_similarity', udf_cos_sim(opiniondf_w2vlarge.word2vec_large)) \
+        .sort(col('cos_similarity'), ascending=False) \
+        .select('cluster_id', 'resource_id', 'cos_similarity').show(10)
 
 # create a list of terms connected to their stems
-df_wordcount = spark.createDataFrame(opinion_df.select(explode(opinion_df.tokens_stop).alias('term')).groupBy('term').agg({"*": "count"}).collect())
-df_stems = df_wordcount.withColumn('stem', udf(lambda term: opinion_stemm.stem(term), StringType())(col('term'))).groupBy('stem').agg(collect_list('term').alias('terms'))
-df_stems.select('terms').filter(df_stems.stem == opinion_stemm.stem('artful')).first()[0]
+df_wordcount = spark \
+        .createDataFrame(opinion_df.select(explode(opinion_df.tokens_stop).alias('term')) \
+        .groupBy('term') \
+        .agg({"*": "count"}) \
+        .collect())
+df_stems = df_wordcount \
+        .withColumn('stem', udf(lambda term: opinion_stemm.stem(term), StringType())(col('term'))) \
+        .groupBy('stem') \
+        .agg(collect_list('term').alias('terms'))
+df_stems \
+        .select('terms') \
+        .filter(df_stems.stem == opinion_stemm.stem('artful')) \
+        .first()[0]
 
 # create a count for each opinion of the number of times it has been cited by other Washington opinions
-df_citecount = spark.createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')).groupBy('cites').agg({"*": "count"}).collect())
+df_citecount = spark \
+        .createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')) \
+        .groupBy('cites') \
+        .agg({"*": "count"}) \
+        .collect())
 df_citecount.orderBy('count(1)', ascending=False).show()
 
