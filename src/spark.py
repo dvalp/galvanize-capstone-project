@@ -136,9 +136,9 @@ opinion_loaded = spark.read.json('data/opinions-spark-data.json')
 # extract the vector from a specific document and take the squared distance or cosine similarity for all other documents, show the ten nearest
 ref_vec = opiniondf_w2vlarge.filter(opiniondf_w2vlarge.resource_id == '3990749').first()['word2vec_large']
 
-udfSqDist = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
+udf_squared_distance = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
 opiniondf_w2vlarge \
-        .withColumn('squared_distance', udfSqDist(opiniondf_w2vlarge.word2vec_large)) \
+        .withColumn('squared_distance', udf_squared_distance(opiniondf_w2vlarge.word2vec_large)) \
         .sort(col('squared_distance'), ascending=True) \
         .select('cluster_id', 'resource_id', 'squared_distance').show(10)
 
