@@ -20,7 +20,7 @@ raw_cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
 udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
 udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
 
-# Convert data to correct types and parse out HTML tags
+# Convert data to correct types, parse out HTML tags, parse id numbers, and drop unneeded columns
 raw_opinion_fix_columns = raw_opinion_df \
         .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
         .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'plain_text')) \
@@ -29,22 +29,6 @@ raw_opinion_fix_columns = raw_opinion_df \
         .withColumn('resource_id', udf_parse_id('resource_uri')) \
         .withColumn('created_date', to_date('date_created')) \
         .withColumn('modified_date', to_date('date_modified'))
-
-raw_docket_fix_columns = raw_docket_df \
-        .withColumn('date_blocked_dt', to_date('date_blocked')) \
-        .withColumn('date_created_dt', to_date('date_created')) \
-        .withColumn('date_modified_dt', to_date('date_modified')) \
-        .withColumn('docket_id', udf_parse_id('resource_uri'))
-
-raw_cluster_fix_columns = raw_cluster_df \
-        .withColumn('date_created_dt', to_date('date_created')) \
-        .withColumn('date_filed_dt', to_date('date_filed')) \
-        .withColumn('date_modified_dt', to_date('date_modified')) \
-        .withColumn('docket_id', udf_parse_id('docket')) \
-        .withColumn('cluster_id', udf_parse_id('resource_uri'))
-
-# Drop columns that are no longer needed
-opinion_df = raw_opinion_fix_columns \
         .drop('cluster') \
         .drop('date_created') \
         .drop('date_modified') \
@@ -55,7 +39,11 @@ opinion_df = raw_opinion_fix_columns \
         .drop('plain_text') \
         .drop('resource_uri')
 
-docket_df = raw_docket_fix_columns \
+raw_docket_fix_columns = raw_docket_df \
+        .withColumn('date_blocked_dt', to_date('date_blocked')) \
+        .withColumn('date_created_dt', to_date('date_created')) \
+        .withColumn('date_modified_dt', to_date('date_modified')) \
+        .withColumn('docket_id', udf_parse_id('resource_uri'))
         .drop('assigned_to') \
         .drop('audio_files') \
         .drop('cause') \
@@ -75,7 +63,12 @@ docket_df = raw_docket_fix_columns \
         .drop('pacer_case_id') \
         .drop('referred_to')
 
-cluster_df = raw_cluster_fix_columns \
+raw_cluster_fix_columns = raw_cluster_df \
+        .withColumn('date_created_dt', to_date('date_created')) \
+        .withColumn('date_filed_dt', to_date('date_filed')) \
+        .withColumn('date_modified_dt', to_date('date_modified')) \
+        .withColumn('docket_id', udf_parse_id('docket')) \
+        .withColumn('cluster_id', udf_parse_id('resource_uri'))
         .drop('citation_id') \
         .drop('date_blocked') \
         .drop('lexis_cite') \
