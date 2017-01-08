@@ -157,3 +157,6 @@ def get_doc_schema(doc_type):
         schema = None
 
     return path, schema
+
+def fix_and_drop_columns(df):
+    pass
