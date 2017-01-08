@@ -12,76 +12,9 @@ from pyspark.sql.functions import udf, col, explode, collect_list, to_date, conc
 
 
 # Import json objects from tar file
-raw_opinion_df = prepare_court_data.import_dataframe(spark, 'opinion')
-raw_docket_df = prepare_court_data.import_dataframe(spark, 'docket')
-raw_cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
-
-# fill in null values for opinion text and then join them into one column and use BeautifulSoup
-udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
-udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
-
-# Convert data to correct types, parse out HTML tags, parse id numbers, and drop unneeded columns
-opinion_df = raw_opinion_df \
-        .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
-        .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'plain_text')) \
-        .withColumn('parsed_text', udf_remove_html_tags('text')) \
-        .withColumn('cluster_id', udf_parse_id('cluster')) \
-        .withColumn('resource_id', udf_parse_id('resource_uri')) \
-        .withColumn('created_date', to_date('date_created')) \
-        .withColumn('modified_date', to_date('date_modified'))
-        .drop('cluster') \
-        .drop('date_created') \
-        .drop('date_modified') \
-        .drop('html') \
-        .drop('html_columbia') \
-        .drop('html_lawbox') \
-        .drop('html_with_citations') \
-        .drop('plain_text') \
-        .drop('resource_uri')
-
-docket_df = raw_docket_df \
-        .withColumn('date_blocked_dt', to_date('date_blocked')) \
-        .withColumn('date_created_dt', to_date('date_created')) \
-        .withColumn('date_modified_dt', to_date('date_modified')) \
-        .withColumn('docket_id', udf_parse_id('resource_uri'))
-        .drop('assigned_to') \
-        .drop('audio_files') \
-        .drop('cause') \
-        .drop('date_argued') \
-        .drop('date_cert_denied') \
-        .drop('date_cert_granted') \
-        .drop('date_filed') \
-        .drop('date_last_filing') \
-        .drop('date_reargued') \
-        .drop('date_reargument_denied') \
-        .drop('date_terminated') \
-        .drop('filepath_ia') \
-        .drop('filepath_local') \
-        .drop('jurisdiction_type') \
-        .drop('jury_demand') \
-        .drop('nature_of_suit') \
-        .drop('pacer_case_id') \
-        .drop('referred_to')
-
-cluster_df = raw_cluster_df \
-        .withColumn('date_created_dt', to_date('date_created')) \
-        .withColumn('date_filed_dt', to_date('date_filed')) \
-        .withColumn('date_modified_dt', to_date('date_modified')) \
-        .withColumn('docket_id', udf_parse_id('docket')) \
-        .withColumn('cluster_id', udf_parse_id('resource_uri'))
-        .drop('citation_id') \
-        .drop('date_blocked') \
-        .drop('lexis_cite') \
-        .drop('nature_of_suit') \
-        .drop('neutral_cite') \
-        .drop('non_participating_judges') \
-        .drop('panel') \
-        .drop('procedural_history') \
-        .drop('scdb_decision_direction') \
-        .drop('scdb_id') \
-        .drop('scdb_votes_majority') \
-        .drop('scdb_votes_minority') \
-        .drop('scotus_early_cite')
+opinion_df = prepare_court_data.import_dataframe(spark, 'opinion')
+docket_df = prepare_court_data.import_dataframe(spark, 'docket')
+cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
 
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
@@ -157,10 +90,10 @@ df_stems \
         .first()[0]
 
 # create a count for each opinion of the number of times it has been cited by other Washington opinions
-df_citecount = spark \
-        .createDataFrame(opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')) \
-        .groupBy('cites') \
-        .agg({"*": "count"}) \
-        .collect())
+df_citecount = spark.createDataFrame(
+        opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')) \
+                .groupBy('cites') \
+                .count() \
+                .collect())
 df_citecount.orderBy('count(1)', ascending=False).show()
 

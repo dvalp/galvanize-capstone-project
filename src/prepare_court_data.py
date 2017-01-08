@@ -5,6 +5,7 @@ import json
 from bs4 import BeautifulSoup
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
         FloatType, ArrayType, BooleanType
+from pyspark.sql.functions import udf, concat, to_date
 
 
 def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
@@ -32,7 +33,11 @@ def import_dataframe(spark, doc_type):
     Pass in a Spark session object so the data can be loaded into the current session.
 
     The schema is important because inferring the data type from a dict is deprecated in Spark and 
-    sometimes assumes the wrong type.
+    sometimes assumes the wrong type. Using a schema is much faster than infering it and the api from 
+    CourtListener won't change often.
+
+    Finally, fix the columns that can't be converted automatically (date fields) and parse out id numbers
+    from urls so that they can be used as integers. Then drop the extra columns.
     '''
     doc_path, schema = get_doc_schema(doc_type)
 
@@ -40,7 +45,9 @@ def import_dataframe(spark, doc_type):
         json_gen = (json.loads(tf.extractfile(f).read().decode()) for f in tf)
         raw_dataframe = spark.createDataFrame(json_gen, schema)
 
-    return raw_dataframe
+    fixed_df = fix_and_drop_columns(raw_dataframe, doc_type)
+
+    return fixed_df
 
 def get_doc_schema(doc_type):
     '''
@@ -158,5 +165,80 @@ def get_doc_schema(doc_type):
 
     return path, schema
 
-def fix_and_drop_columns(df):
-    pass
+def fix_and_drop_columns(df, df_type):
+    '''
+    Depending on the dataset type given, return a Spark DataFrame with the dates converted to DateType.
+    Also, uses the url fields to create id numbers for each row so they can be joined later. For
+    opinions, fill non-values with empty strings to so the columns can easily be concatenated into one
+    column. Finally, drop unnecessary columns (some of which are only used in other data sets, for
+    example SCOTUS opinions).
+    '''
+    # fill in null values for opinion text and then join them into one column and use BeautifulSoup
+    udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
+    udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
+
+    # Convert data to correct types, parse out HTML tags, parse id numbers, and drop unneeded columns
+    if df_type == 'cluster':
+        df_fixed = df \
+                .withColumn('date_created_dt', to_date('date_created')) \
+                .withColumn('date_filed_dt', to_date('date_filed')) \
+                .withColumn('date_modified_dt', to_date('date_modified')) \
+                .withColumn('docket_id', udf_parse_id('docket')) \
+                .withColumn('cluster_id', udf_parse_id('resource_uri')) \
+                .drop('citation_id') \
+                .drop('date_blocked') \
+                .drop('lexis_cite') \
+                .drop('nature_of_suit') \
+                .drop('neutral_cite') \
+                .drop('non_participating_judges') \
+                .drop('panel') \
+                .drop('procedural_history') \
+                .drop('scdb_decision_direction') \
+                .drop('scdb_id') \
+                .drop('scdb_votes_majority') \
+                .drop('scdb_votes_minority') \
+                .drop('scotus_early_cite')
+    elif df_type == 'docket':
+        df_fixed = df \
+                .withColumn('date_blocked_dt', to_date('date_blocked')) \
+                .withColumn('date_created_dt', to_date('date_created')) \
+                .withColumn('date_modified_dt', to_date('date_modified')) \
+                .withColumn('docket_id', udf_parse_id('resource_uri')) \
+                .drop('assigned_to') \
+                .drop('audio_files') \
+                .drop('cause') \
+                .drop('date_argued') \
+                .drop('date_cert_denied') \
+                .drop('date_cert_granted') \
+                .drop('date_filed') \
+                .drop('date_last_filing') \
+                .drop('date_reargued') \
+                .drop('date_reargument_denied') \
+                .drop('date_terminated') \
+                .drop('filepath_ia') \
+                .drop('filepath_local') \
+                .drop('jurisdiction_type') \
+                .drop('jury_demand') \
+                .drop('nature_of_suit') \
+                .drop('pacer_case_id') \
+                .drop('referred_to')
+    elif df_type == 'opinion':
+        df_fixed = df \
+                .fillna('', ['html', 'html_columbia', 'html_lawbox', 'plain_text']) \
+                .withColumn('text', concat('html', 'html_lawbox', 'html_columbia', 'plain_text')) \
+                .withColumn('parsed_text', udf_remove_html_tags('text')) \
+                .withColumn('cluster_id', udf_parse_id('cluster')) \
+                .withColumn('resource_id', udf_parse_id('resource_uri')) \
+                .withColumn('created_date', to_date('date_created')) \
+                .withColumn('modified_date', to_date('date_modified')) \
+                .drop('cluster') \
+                .drop('date_created') \
+                .drop('date_modified') \
+                .drop('html') \
+                .drop('html_columbia') \
+                .drop('html_lawbox') \
+                .drop('html_with_citations') \
+                .drop('plain_text') \
+                .drop('resource_uri')
+    
+    return df_fixed
