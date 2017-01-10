@@ -7,3 +7,6 @@ class stemming_transformer(Transformer, HasInputCol, HasOutputCol):
     @keyword_only
     def __init__(self, inputCol=None, outputCol=None):
         pass
+
+    def _transform():
+        pass
