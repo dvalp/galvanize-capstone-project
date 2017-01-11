@@ -7,10 +7,10 @@ from nltk.stem import SnowballStemmer
 class stemming_transformer(Transformer, HasInputCol, HasOutputCol):
     @keyword_only
     def __init__(self, inputCol=None, outputCol=None):
-        pass
+        super(stemming_transformer, self).__init__()
 
     @keyword_only
-    def setParam(self, inputCol=None, outputCol=None):
+    def setParams(self, inputCol=None, outputCol=None):
         pass
 
     def _transform(self, dataset):
