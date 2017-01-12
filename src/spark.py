@@ -16,6 +16,23 @@ opinion_df = prepare_court_data.import_dataframe(spark, 'opinion')
 docket_df = prepare_court_data.import_dataframe(spark, 'docket')
 cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
 
+# Setup pipeline for adding ML features - tokens, stems, n-grams, tf, tfidf, word2vec
+regexTokenizer = RegexTokenizer(inputCol="parsed_text", outputCol="raw_tokens", pattern="\\W", minTokenLength=3)
+remover = StopWordsRemover(inputCol=regexTokenizer.getOutputCol(), outputCol='tokens_stop')
+stemmer = Stemming_Transformer(inputCol=remover.getOutputCol(), outputCol='tokens')
+bigram = NGram(inputCol=stemmer.getOutputCol(), outputCol='bigrams', n=2)
+trigram = NGram(inputCol=stemmer.getOutputCol(), outputCol='trigrams', n=3)
+cv = CountVectorizer(inputCol=stemmer.getOutputCol(), outputCol='token_countvector', minDF=10.0)
+idf = IDF(inputCol=cv.getOutputCol(), outputCol='token_idf', minDocFreq=10)
+
+pipe = Pipeline(stages=[regexTokenizer, remover, stem_tokens, cv, idf])
+
+# Use the pipeline to fit a model
+model = pipe.fit(opinion_df)
+
+# Use the model to transform the data
+df_fitted = model.transform(opinion_df)
+
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
 regexTokenizer = RegexTokenizer(inputCol="parsed_text", outputCol="raw_tokens", pattern="\\W", minTokenLength=3)
