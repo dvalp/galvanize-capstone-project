@@ -17,15 +17,18 @@ docket_df = prepare_court_data.import_dataframe(spark, 'docket')
 cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
 
 # Setup pipeline for adding ML features - tokens, stems, n-grams, tf, tfidf, word2vec
-regexTokenizer = RegexTokenizer(inputCol="parsed_text", outputCol="raw_tokens", pattern="\\W", minTokenLength=3)
-remover = StopWordsRemover(inputCol=regexTokenizer.getOutputCol(), outputCol='tokens_stop')
+# tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
+tokenizer = RegexTokenizer(inputCol="parsed_text", outputCol="raw_tokens", pattern="\\W", minTokenLength=3)
+remover = StopWordsRemover(inputCol=tokenizer.getOutputCol(), outputCol='tokens_stop')
 stemmer = Stemming_Transformer(inputCol=remover.getOutputCol(), outputCol='tokens')
 bigram = NGram(inputCol=stemmer.getOutputCol(), outputCol='bigrams', n=2)
 trigram = NGram(inputCol=stemmer.getOutputCol(), outputCol='trigrams', n=3)
 cv = CountVectorizer(inputCol=stemmer.getOutputCol(), outputCol='token_countvector', minDF=10.0)
 idf = IDF(inputCol=cv.getOutputCol(), outputCol='token_idf', minDocFreq=10)
+w2v_2d = Word2Vec(vectorSize=2, minCount=2, inputCol=stemmer.getOutputCol(), outputCol='word2vec_2d')
+w2v_large = Word2Vec(vectorSize=250, minCount=2, inputCol=stemmer.getOutputCol(), outputCol='word2vec_large')
 
-pipe = Pipeline(stages=[regexTokenizer, remover, stem_tokens, cv, idf])
+pipe = Pipeline(stages=[regexTokenizer, remover, stem_tokens, cv, idf, w2v_2d, w2v_large])
 
 # Use the pipeline to fit a model
 model = pipe.fit(opinion_df)
