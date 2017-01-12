@@ -34,7 +34,7 @@ pipe = Pipeline(stages=[regexTokenizer, remover, stem_tokens, cv, idf, w2v_2d, w
 model = pipe.fit(opinion_df)
 
 # Use the model to transform the data
-df_fitted = model.transform(opinion_df)
+df_transformed = model.transform(opinion_df)
 
 # Parse tokens from text, remove stopwords
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
