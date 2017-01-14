@@ -1,20 +1,22 @@
-from src import prepare_court_data
-import pyspark as ps
+from src.prepare_court_data import import_dataframe, reverse_stem
+from src.ml_transformer import Stemming_Transformer
 from bs4 import BeautifulSoup
 import pandas as pd
 import numpy as np
+import pyspark as ps
+from pyspark.ml import Pipeline
 from pyspark.ml.feature import Tokenizer, RegexTokenizer, StopWordsRemover, NGram, \
         CountVectorizer, IDF, Word2Vec
+from pyspark.sql.functions import udf, col, explode, collect_list, to_date, concat
 from pyspark.sql.types import StructType, StructField, IntegerType, StringType, \
         FloatType, ArrayType, BooleanType
 from nltk.stem import SnowballStemmer
-from pyspark.sql.functions import udf, col, explode, collect_list, to_date, concat
 
 
 # Import json objects from tar file
-opinion_df = prepare_court_data.import_dataframe(spark, 'opinion')
-docket_df = prepare_court_data.import_dataframe(spark, 'docket')
-cluster_df = prepare_court_data.import_dataframe(spark, 'cluster')
+opinion_df = import_dataframe(spark, 'opinion')
+docket_df = import_dataframe(spark, 'docket')
+cluster_df = import_dataframe(spark, 'cluster')
 
 # Setup pipeline for adding ML features - tokens, stems, n-grams, tf, tfidf, word2vec
 # tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
@@ -28,7 +30,7 @@ idf = IDF(inputCol=cv.getOutputCol(), outputCol='token_idf', minDocFreq=10)
 w2v_2d = Word2Vec(vectorSize=2, minCount=2, inputCol=stemmer.getOutputCol(), outputCol='word2vec_2d')
 w2v_large = Word2Vec(vectorSize=250, minCount=2, inputCol=stemmer.getOutputCol(), outputCol='word2vec_large')
 
-pipe = Pipeline(stages=[regexTokenizer, remover, stem_tokens, cv, idf, w2v_2d, w2v_large])
+pipe = Pipeline(stages=[tokenizer, remover, stemmer, cv, idf, w2v_2d, w2v_large])
 
 # Use the pipeline to fit a model
 model = pipe.fit(opinion_df)
