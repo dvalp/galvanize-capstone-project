@@ -36,42 +36,6 @@ model = pipe.fit(opinion_df)
 # Use the model to transform the data
 df_transformed = model.transform(opinion_df)
 
-# Parse tokens from text, remove stopwords
-# tokenizer = Tokenizer(inputCol='parsed_text', outputCol='tokens')
-regexTokenizer = RegexTokenizer(inputCol="parsed_text", outputCol="raw_tokens", pattern="\\W", minTokenLength=3)
-remover = StopWordsRemover(inputCol='raw_tokens', outputCol='tokens_stop')
-opiniondf_tokenized = regexTokenizer.transform(opinion_df)
-opiniondf_nostop = remover.transform(opiniondf_tokenized)
-
-# use a udf to stem the tokens using the nltk SnowballStemmer with the English dictionary
-opinion_stemm = SnowballStemmer('english')
-udfStemmer = udf(lambda tokens: [opinion_stemm.stem(word) for word in tokens], ArrayType(StringType()))
-opiniondf_stemmed = opiniondf_nostop.withColumn('tokens', udfStemmer(opiniondf_nostop.tokens_stop))
-
-# create n-grams
-bigram = NGram(inputCol='tokens', outputCol='bigrams', n=2)
-trigram = NGram(inputCol='tokens', outputCol='trigrams', n=3)
-opiniondf_bigram = bigram.transform(opiniondf_stemmed)
-opiniondf_trigram = trigram.transform(opiniondf_bigram)
-
-# CountVectorizer
-cv = CountVectorizer(inputCol='tokens', outputCol='token_countvector', minDF=10.0)
-opinion_cv_model = cv.fit(opiniondf_trigram)
-opiniondf_countvector = opinion_cv_model.transform(opiniondf_trigram)
-
-# IDF
-idf = IDF(inputCol='token_countvector', outputCol='token_idf', minDocFreq=10)
-opinion_idf_model = idf.fit(opiniondf_countvector)
-opiniondf_idf = opinion_idf_model.transform(opiniondf_countvector)
-
-# Word2Vec
-w2v_2d = Word2Vec(vectorSize=2, minCount=2, inputCol='tokens', outputCol='word2vec_2d')
-w2v_large = Word2Vec(vectorSize=250, minCount=2, inputCol='tokens', outputCol='word2vec_large')
-w2v2d_model = w2v_2d.fit(opiniondf_idf)
-w2vlarge_model = w2v_large.fit(opiniondf_idf)
-opiniondf_w2v2d = w2v2d_model.transform(opiniondf_idf)
-opiniondf_w2vlarge = w2vlarge_model.transform(opiniondf_w2v2d)
-
 # retrieve top 10 number of words for the document, assumes existence of 'row' containg one row from the dataframe
 np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
 
