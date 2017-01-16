@@ -1,6 +1,6 @@
-Spark includes it's own version of Maven, so just go to the directory for the source code.
-Build spark from the latest version using a clone of the github repo using the following line:
-`./build/mvn -Pyarn -Phadoop-2.7 -Dhadoop.version=2.7.3 -Dscala-2.11 -Pnetlib-lgpl -DskipTests clean package`
+Spark includes its own version of Maven, so just go to the directory for the source code.
+Build spark from the latest version using a clone of the [github repo](https://github.com/apache/spark/) using the following line:
+`./build/mvn -Pyarn -Phadoop-2.7 -Dhadoop.version=2.7.3 -Dscala-2.11 -Pnetlib-lgpl -DskipTests clean package`.
 
 Build OpenBLAS from a clone of the github repo by running `make` in the directory where the repo is saved. Then use `sudo make PREFIX=/opt/OpenBLAS install` to install it in a directory. Add the directory `/opt/OpenBLAS/lib` to `/etc/ld.so.conf.d/openblas.conf` and run `ldconfig` to load the new libraries.
 
