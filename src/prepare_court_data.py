@@ -9,11 +9,11 @@ from pyspark.sql.functions import udf, concat, to_date
 
 
 def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
-    '''
+    """
     Take the stemmed words in a document and return the possible words (from all documents) that could 
     could have been used to create the stem. This doesn't (yet) take into account whether the specific 
     words actually exist in the current document.
-    '''
+    """
     row = opinion_df.filter(opinion_df.resource_id == resource_id).first()
     term_stems = np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
     word_lists = []
@@ -22,7 +22,7 @@ def reverse_stem(resource_id, opinion_df, opinion_cv_model, df_stems):
     return word_lists
 
 def import_dataframe(spark, doc_type):
-    '''
+    """
     Import the data from a tar.gz file. Use a generator so the data isn't loaded until necessary.
 
     The tarfile module provides a TarInfo object that can be used to identify each file for extraction.
@@ -38,7 +38,7 @@ def import_dataframe(spark, doc_type):
 
     Finally, fix the columns that can't be converted automatically (date fields) and parse out id numbers
     from urls so that they can be used as integers. Then drop the extra columns.
-    '''
+    """
     doc_path, schema = get_doc_schema(doc_type)
 
     with tarfile.open(doc_path, mode='r:gz') as tf:
@@ -50,12 +50,12 @@ def import_dataframe(spark, doc_type):
     return fixed_df
 
 def get_doc_schema(doc_type):
-    '''
+    """
     Return the document schema and path for importing data files into Spark. Removed from import 
     to reduce redundancy and limit places code needs to change for imports. 
 
     Will return None for path and schema if unknown type is passed.
-    '''
+    """
     if doc_type == 'opinion':
         path = 'data/opinions_wash.tar.gz'
         schema = StructType([
@@ -166,13 +166,13 @@ def get_doc_schema(doc_type):
     return path, schema
 
 def fix_and_drop_columns(df, df_type):
-    '''
+    """
     Depending on the dataset type given, return a Spark DataFrame with the dates converted to DateType.
     Also, uses the url fields to create id numbers for each row so they can be joined later. For
     opinions, fill non-values with empty strings to so the columns can easily be concatenated into one
     column. Finally, drop unnecessary columns (some of which are only used in other data sets, for
     example SCOTUS opinions).
-    '''
+    """
     # fill in null values for opinion text and then join them into one column and use BeautifulSoup
     udf_parse_id = udf(lambda cell: int(cell.split('/')[-2]), IntegerType())
     udf_remove_html_tags = udf(lambda cell: BeautifulSoup(cell, 'lxml').text, StringType())
