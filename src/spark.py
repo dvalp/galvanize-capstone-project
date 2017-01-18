@@ -52,13 +52,15 @@ udf_squared_distance = udf(lambda cell: float(ref_vec.squared_distance(cell)), F
 df_transformed \
         .withColumn('squared_distance', udf_squared_distance(df_transformed.word2vec_large)) \
         .sort(col('squared_distance'), ascending=True) \
-        .select('resource_id', 'squared_distance').show(10)
+        .select('resource_id', 'squared_distance')
+        .show(10)
 
 udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm(2) * cell.norm(2))), FloatType())
 df_transformed \
         .withColumn('cos_similarity', udf_cos_sim(df_transformed.word2vec_large)) \
         .sort(col('cos_similarity'), ascending=False) \
-        .select('resource_id', 'cos_similarity').show(10)
+        .select('resource_id', 'cos_similarity')
+        .show(10)
 
 # create a list of terms connected to their stems
 df_wordcount = spark \
@@ -81,5 +83,5 @@ df_citecount = spark.createDataFrame(
                 .groupBy('cites') \
                 .count() \
                 .collect())
-df_citecount.orderBy('count(1)', ascending=False).show()
+df_citecount.orderBy('count', ascending=False).show()
 
