@@ -46,19 +46,19 @@ opiniondf_w2vlarge.write.save('data/opinions-spark-data.json', format='json', mo
 opinion_loaded = spark.read.json('data/opinions-spark-data.json')
 
 # extract the vector from a specific document and take the squared distance or cosine similarity for all other documents, show the ten nearest
-ref_vec = df_transformed.filter(df_transformed.resource_id == '3990749').first()['word2vec_large']
+ref_vec = df_transformed.filter(df_transformed.resource_id == '1390131').first()['word2vec_large']
 
 udf_squared_distance = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
 df_transformed \
         .withColumn('squared_distance', udf_squared_distance(df_transformed.word2vec_large)) \
         .sort(col('squared_distance'), ascending=True) \
-        .select('cluster_id', 'resource_id', 'squared_distance').show(10)
+        .select('resource_id', 'squared_distance').show(10)
 
 udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm(2) * cell.norm(2))), FloatType())
 df_transformed \
         .withColumn('cos_similarity', udf_cos_sim(df_transformed.word2vec_large)) \
         .sort(col('cos_similarity'), ascending=False) \
-        .select('cluster_id', 'resource_id', 'cos_similarity').show(10)
+        .select('resource_id', 'cos_similarity').show(10)
 
 # create a list of terms connected to their stems
 df_wordcount = spark \
