@@ -46,23 +46,25 @@ opiniondf_w2vlarge.write.save('data/opinions-spark-data.json', format='json', mo
 opinion_loaded = spark.read.json('data/opinions-spark-data.json')
 
 # extract the vector from a specific document and take the squared distance or cosine similarity for all other documents, show the ten nearest
-ref_vec = opiniondf_w2vlarge.filter(opiniondf_w2vlarge.resource_id == '3990749').first()['word2vec_large']
+ref_vec = df_transformed.filter(df_transformed.resource_id == '1390131').first()['word2vec_large']
 
 udf_squared_distance = udf(lambda cell: float(ref_vec.squared_distance(cell)), FloatType())
-opiniondf_w2vlarge \
-        .withColumn('squared_distance', udf_squared_distance(opiniondf_w2vlarge.word2vec_large)) \
+df_transformed \
+        .withColumn('squared_distance', udf_squared_distance(df_transformed.word2vec_large)) \
         .sort(col('squared_distance'), ascending=True) \
-        .select('cluster_id', 'resource_id', 'squared_distance').show(10)
+        .select('resource_id', 'squared_distance')
+        .show(10)
 
 udf_cos_sim = udf(lambda cell: float(ref_vec.dot(cell) / (ref_vec.norm(2) * cell.norm(2))), FloatType())
-opiniondf_w2vlarge \
-        .withColumn('cos_similarity', udf_cos_sim(opiniondf_w2vlarge.word2vec_large)) \
+df_transformed \
+        .withColumn('cos_similarity', udf_cos_sim(df_transformed.word2vec_large)) \
         .sort(col('cos_similarity'), ascending=False) \
-        .select('cluster_id', 'resource_id', 'cos_similarity').show(10)
+        .select('resource_id', 'cos_similarity')
+        .show(10)
 
 # create a list of terms connected to their stems
 df_wordcount = spark \
-        .createDataFrame(opinion_df.select(explode(opinion_df.tokens_stop).alias('term')) \
+        .createDataFrame(df_transformed.select(explode(df_transformed.tokens_stop).alias('term')) \
         .groupBy('term') \
         .agg({"*": "count"}) \
         .collect())
@@ -77,9 +79,9 @@ df_stems \
 
 # create a count for each opinion of the number of times it has been cited by other Washington opinions
 df_citecount = spark.createDataFrame(
-        opinion_df.select(explode(opinion_df.opinions_cited).alias('cites')) \
+        df_transformed.select(explode(df_transformed.opinions_cited).alias('cites')) \
                 .groupBy('cites') \
                 .count() \
                 .collect())
-df_citecount.orderBy('count(1)', ascending=False).show()
+df_citecount.orderBy('count', ascending=False).show()
 
