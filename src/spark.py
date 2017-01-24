@@ -13,6 +13,9 @@ from pyspark.sql.types import StructType, StructField, IntegerType, StringType, 
 from nltk.stem import SnowballStemmer
 
 
+# one time only download required for sent_tokenize
+nltk.download('punkt')
+
 # Import json objects from tar file
 opinion_df = import_dataframe(spark, 'opinion')
 docket_df = import_dataframe(spark, 'docket')
@@ -38,12 +41,22 @@ model = pipe.fit(opinion_df)
 # Use the model to transform the data
 df_transformed = model.transform(opinion_df)
 
+# split each document into sentences
+sent_tokens = udf(lambda doc: sent_tokenize(doc.replace('\n', ' ')), ArrayType(StringType()))
+df_sentences = df.withColumn('sents', sent_tokens('parsed_text'))
+
 # retrieve top 10 number of words for the document, assumes existence of 'row' containg one row from the dataframe
 np.array(opinion_cv_model.vocabulary)[row['token_idf'].indices[np.argsort(row['token_idf'].values)]][:-11:-1]
 
 # save and retrieve dataframe
 opiniondf_w2vlarge.write.save('data/opinions-spark-data.json', format='json', mode='overwrite')
 opinion_loaded = spark.read.json('data/opinions-spark-data.json')
+
+# save just 1000 rows into a parquet file
+spark.createDataFrame(opinion_df.select('resource_id', 'parsed_text').take(1000)).write.save('data/wash_state_1000_opinions.parquet', format='parquet', mode='overwrite')
+
+# load parquet file into Spark
+df = spark.read.load('data/wash_state_1000_opinions.parquet')
 
 # extract the vector from a specific document and take the squared distance or cosine similarity for all other documents, show the ten nearest
 ref_vec = df_transformed.filter(df_transformed.resource_id == '1390131').first()['word2vec_large']
@@ -84,17 +97,4 @@ df_citecount = spark.createDataFrame(
                 .count() \
                 .collect())
 df_citecount.orderBy('count', ascending=False).show()
-
-# save just 1000 rows into a parquet file
-spark.createDataFrame(opinion_df.select('resource_id', 'parsed_text').take(1000)).write.save('data/wash_state_1000_opinions.parquet', format='parquet', mode='overwrite')
-
-# load parquet file into Spark
-df = spark.read.load('data/wash_state_1000_opinions.parquet')
-
-# one time only download required for sent_tokenize
-nltk.download('punkt')
-
-# split each document into sentences
-sent_tokens = udf(lambda doc: sent_tokenize(doc.replace('\n', ' ')), ArrayType(StringType()))
-df_sentences = df.withColumn('sents', sent_tokens('parsed_text'))
 
