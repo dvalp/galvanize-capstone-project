@@ -85,3 +85,16 @@ df_citecount = spark.createDataFrame(
                 .collect())
 df_citecount.orderBy('count', ascending=False).show()
 
+# save just 1000 rows into a parquet file
+spark.createDataFrame(opinion_df.select('resource_id', 'parsed_text').take(1000)).write.save('data/wash_state_1000_opinions.parquet', format='parquet', mode='overwrite')
+
+# load parquet file into Spark
+df = spark.read.load('data/wash_state_1000_opinions.parquet')
+
+# one time only download required for sent_tokenize
+nltk.download('punkt')
+
+# split each document into sentences
+sent_tokens = udf(lambda doc: sent_tokenize(doc.replace('\n', ' ')), ArrayType(StringType()))
+df_sentences = df.withColumn('sents', sent_tokens('parsed_text'))
+
