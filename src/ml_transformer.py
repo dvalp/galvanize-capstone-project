@@ -8,6 +8,13 @@ from pyspark.sql.types import ArrayType, StringType
 
 # Custom stemming transformer class for pyspark
 class Stemming_Transformer(Transformer, HasInputCol, HasOutputCol):
+    """
+    Create a class to act as a wrapper for a UDF. This class has the minimum 
+    requirements for a pyspark transformer that can be used in the pipeline 
+    object to act on the data in a dataframe. This particular class allows 
+    the SnowballStemmer to be dropped in and used as part of the pipeline.
+    """
+    
     @keyword_only
     def __init__(self, inputCol=None, outputCol=None):
         super(Stemming_Transformer, self).__init__()
