@@ -37,7 +37,7 @@ mistune==0.7.3
 nbconvert==4.2.0
 nbformat==4.1.0
 notebook==4.2.3
-numpy==1.11.2
+numpy==1.22.0
 oauthlib==1.0.3
 oneconf==0.3.9
 pandas==0.19.1
