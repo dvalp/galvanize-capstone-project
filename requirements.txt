@@ -33,7 +33,7 @@ jupyter-core==4.2.0
 louis==2.6.4
 lxml==3.6.4
 MarkupSafe==0.23
-mistune==0.7.3
+mistune==2.0.3
 nbconvert==4.2.0
 nbformat==4.1.0
 notebook==4.2.3
